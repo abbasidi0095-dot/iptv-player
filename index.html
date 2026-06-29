@@ -620,16 +620,15 @@ async function loadMatches(category) {
 
 function renderMatches() {
   const query = searchInput.value.toLowerCase().trim();
-  const now = Date.now();
-  const twoHoursMs = 2 * 60 * 60 * 1000;
 
   let filtered = sportsEvents.filter(ev => {
-    if (ev.status !== 'LIVE') return false;
-    if (ev.start) {
-      const endMs = ev.end ? parseMatchTime(ev.end) : parseMatchTime(ev.start) + 3 * 60 * 60 * 1000;
-      if (!isNaN(endMs) && (now - endMs) > twoHoursMs) return false;
-    }
-    return true;
+    if (!ev.channels || ev.channels.length === 0) return false;
+    if (ev.status === 'FT' || ev.status === 'finished') return false;
+    const startMs = parseMatchTime(ev.start);
+    if (isNaN(startMs)) return true;
+    const now = new Date();
+    const utcToday = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    return startMs >= utcToday;
   });
 
   if (query) {
@@ -642,7 +641,7 @@ function renderMatches() {
   channelCount.textContent = `${filtered.length}`;
 
   if (filtered.length === 0) {
-    showState(query ? 'empty' : 'empty', query ? '🔍' : '⚽', query ? 'No results' : 'No recent matches', query ? 'No matches match your search' : 'No live matches that ended in the last 2 hours. Try again later or check a different sport.');
+    showState(query ? 'empty' : 'empty', query ? '🔍' : '⚽', query ? 'No results' : 'No matches today', query ? 'No matches match your search' : 'No matches with channels today or in the future. Try a different sport.');
     return;
   }
 
@@ -661,7 +660,7 @@ function renderMatches() {
           <div class="ch-name">${escHtml(ev.homeTeam || '')} vs ${escHtml(ev.awayTeam || '')}</div>
           <div class="ch-meta">
             ${ev.tournament ? `<span class="ch-badge cat-badge">${escHtml(ev.tournament)}</span>` : ''}
-            <span class="ch-badge" style="background:#22c55e;color:#fff">● LIVE</span>
+            ${ev.status === 'LIVE' ? '<span class="ch-badge" style="background:#22c55e;color:#fff">● LIVE</span>' : '<span class="ch-badge" style="background:var(--accent-dim);color:#a78bfa">UPCOMING</span>'}
             <span class="ch-badge">${escHtml(ev._sport)}</span>
             ${ev.country ? `<span style="font-size:12px">${ev.countryIMG ? `<img src="${attr(ev.countryIMG)}" style="width:16px;height:12px;vertical-align:middle">` : ''} ${escHtml(ev.country)}</span>` : ''}
           </div>
