@@ -518,6 +518,14 @@ function renderChannels() {
 
 function attr(s) { return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function parseMatchTime(str) {
+  if (!str) return NaN;
+  const p = str.split(' ');
+  if (p.length < 2) return NaN;
+  const [y, m, d] = p[0].split('-').map(Number);
+  const [hh, mm] = p[1].split(':').map(Number);
+  return Date.UTC(y, m - 1, d, hh, mm);
+}
 
 function playChannel(url, name, tvgLogo) {
   if (hls) { hls.destroy(); hls = null; }
@@ -618,8 +626,8 @@ function renderMatches() {
   let filtered = sportsEvents.filter(ev => {
     if (ev.status !== 'LIVE') return false;
     if (ev.start) {
-      const startMs = new Date(ev.start).getTime();
-      if (!isNaN(startMs) && (now - startMs) > twoHoursMs) return false;
+      const endMs = ev.end ? parseMatchTime(ev.end) : parseMatchTime(ev.start) + 3 * 60 * 60 * 1000;
+      if (!isNaN(endMs) && (now - endMs) > twoHoursMs) return false;
     }
     return true;
   });
@@ -634,7 +642,7 @@ function renderMatches() {
   channelCount.textContent = `${filtered.length}`;
 
   if (filtered.length === 0) {
-    showState(query ? 'empty' : 'empty', query ? '🔍' : '⚽', query ? 'No results' : 'No live matches', query ? 'No matches match your search' : 'No live matches in the last 2 hours.');
+    showState(query ? 'empty' : 'empty', query ? '🔍' : '⚽', query ? 'No results' : 'No recent matches', query ? 'No matches match your search' : 'No live matches that ended in the last 2 hours. Try again later or check a different sport.');
     return;
   }
 
