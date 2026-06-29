@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPTV Player</title>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f0f0f; --surface: #1a1a2e; --surface2: #16213e;
+    --primary: #e94560; --accent: #0f3460; --text: #eee; --text2: #aaa;
+    --radius: 12px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+  .app { display: flex; flex-direction: column; height: 100vh; }
+  header { padding: 16px 24px; background: var(--surface); display: flex; align-items: center; gap: 16px; flex-shrink: 0; border-bottom: 1px solid #ffffff10; }
+  header h1 { font-size: 20px; font-weight: 700; background: linear-gradient(135deg, var(--primary), #ff6b6b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .player-wrap { position: relative; background: #000; flex-shrink: 0; }
+  .player-wrap video { width: 100%; display: block; max-height: 50vh; background: #000; }
+  .player-placeholder { width: 100%; max-height: 50vh; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; background: #000; color: var(--text2); font-size: 14px; flex-direction: column; gap: 8px; }
+  .player-placeholder svg { opacity: 0.3; }
+  .now-playing { padding: 8px 24px; background: var(--surface2); font-size: 13px; color: var(--text2); flex-shrink: 0; min-height: 36px; display: flex; align-items: center; }
+  .now-playing strong { color: var(--text); margin-right: 6px; }
+  .controls { padding: 8px 24px; background: var(--surface); display: flex; gap: 12px; align-items: center; flex-shrink: 0; flex-wrap: wrap; }
+  .controls select, .controls input { padding: 8px 12px; border-radius: 8px; border: 1px solid #ffffff20; background: var(--surface2); color: var(--text); font-size: 14px; outline: none; }
+  .controls select:focus, .controls input:focus { border-color: var(--primary); }
+  .controls select { min-width: 180px; }
+  .controls input { flex: 1; min-width: 120px; }
+  .controls .count { font-size: 13px; color: var(--text2); margin-left: auto; }
+  .channels { flex: 1; overflow-y: auto; padding: 12px 24px 24px; }
+  .channels::-webkit-scrollbar { width: 6px; }
+  .channels::-webkit-scrollbar-track { background: transparent; }
+  .channels::-webkit-scrollbar-thumb { background: #ffffff20; border-radius: 3px; }
+  .channel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; }
+  .channel { padding: 10px 14px; background: var(--surface); border-radius: var(--radius); cursor: pointer; transition: all .15s; border: 1px solid transparent; display: flex; align-items: center; gap: 12px; }
+  .channel:hover { background: var(--surface2); border-color: var(--primary); transform: translateY(-1px); }
+  .channel.active { border-color: var(--primary); background: var(--surface2); }
+  .channel .icon { width: 36px; height: 36px; border-radius: 8px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .channel .info { flex: 1; min-width: 0; }
+  .channel .name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .channel .meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .channel .play-btn { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); border: none; color: #fff; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; opacity: 0; transition: opacity .15s; }
+  .channel:hover .play-btn { opacity: 1; }
+  .channel.active .play-btn { opacity: 1; }
+  .spinner { width: 24px; height: 24px; border: 3px solid var(--text2); border-top-color: var(--primary); border-radius: 50%; animation: spin .6s linear infinite; margin: 40px auto; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .no-channels { text-align: center; padding: 40px; color: var(--text2); }
+  .error-msg { text-align: center; padding: 20px; color: var(--primary); }
+  @media (max-width: 640px) {
+    header { padding: 12px 16px; } header h1 { font-size: 16px; }
+    .controls { padding: 8px 16px; }
+    .controls select { min-width: 120px; flex: 1; }
+    .channels { padding: 8px 16px 16px; }
+    .channel-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>IPTV Player</h1>
+    <span style="font-size:12px;color:var(--text2)">powered by iptv-org</span>
+  </header>
+
+  <div class="player-wrap">
+    <video id="video" controls autoplay playsinline style="display:none"></video>
+    <div class="player-placeholder" id="placeholder">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      <span>Select a channel to start watching</span>
+    </div>
+  </div>
+
+  <div class="now-playing" id="nowPlaying">Select a channel</div>
+
+  <div class="controls">
+    <select id="countrySelect"><option value="">Loading countries...</option></select>
+    <input type="text" id="search" placeholder="Search channels..." />
+    <span class="count" id="channelCount">0 channels</span>
+  </div>
+
+  <div class="channels" id="channelList">
+    <div class="spinner"></div>
+  </div>
+</div>
+
+<script>
+const BASE = 'https://raw.githubusercontent.com/iptv-org/iptv/master/streams';
+const COUNTRY_NAMES = {
+  ad:'Andorra',ae:'UAE',af:'Afghanistan',ag:'Antigua',al:'Albania',am:'Armenia',ao:'Angola',
+  ar:'Argentina',at:'Austria',au:'Australia',aw:'Aruba',az:'Azerbaijan',
+  ba:'Bosnia',bb:'Barbados',bd:'Bangladesh',be:'Belgium',bf:'Burkina Faso',bg:'Bulgaria',
+  bh:'Bahrain',bi:'Burundi',bj:'Benin',bm:'Bermuda',bn:'Brunei',bo:'Bolivia',bq:'Bonaire',
+  br:'Brazil',bs:'Bahamas',bw:'Botswana',by:'Belarus',bz:'Belize',
+  ca:'Canada',cd:'DRC',cf:'CAR',cg:'Congo',ch:'Switzerland',ci:'Ivory Coast',cl:'Chile',
+  cm:'Cameroon',cn:'China',co:'Colombia',cr:'Costa Rica',cu:'Cuba',cv:'Cape Verde',
+  cw:'Curaçao',cy:'Cyprus',cz:'Czech Republic',
+  de:'Germany',dj:'Djibouti',dk:'Denmark',dm:'Dominica',do:'DR',dz:'Algeria',
+  ec:'Ecuador',ee:'Estonia',eg:'Egypt',eh:'Western Sahara',er:'Eritrea',es:'Spain',
+  et:'Ethiopia',
+  fi:'Finland',fj:'Fiji',fm:'Micronesia',fo:'Faroe Islands',fr:'France',
+  ga:'Gabon',ge:'Georgia',gf:'French Guiana',gh:'Ghana',gl:'Greenland',gm:'Gambia',
+  gn:'Guinea',gp:'Guadeloupe',gq:'Equatorial Guinea',gr:'Greece',gt:'Guatemala',
+  gu:'Guam',gy:'Guyana',
+  hk:'Hong Kong',hn:'Honduras',hr:'Croatia',ht:'Haiti',hu:'Hungary',
+  id:'Indonesia',ie:'Ireland',il:'Israel',in:'India',iq:'Iraq',ir:'Iran',is:'Iceland',
+  it:'Italy',
+  jm:'Jamaica',jo:'Jordan',jp:'Japan',
+  ke:'Kenya',kg:'Kyrgyzstan',kh:'Cambodia',km:'Comoros',kn:'St Kitts',kp:'North Korea',
+  kr:'South Korea',kw:'Kuwait',kz:'Kazakhstan',
+  la:'Laos',lb:'Lebanon',lc:'St Lucia',li:'Liechtenstein',lk:'Sri Lanka',lr:'Liberia',
+  lt:'Lithuania',lu:'Luxembourg',lv:'Latvia',ly:'Libya',
+  ma:'Morocco',mc:'Monaco',md:'Moldova',me:'Montenegro',mg:'Madagascar',mk:'N. Macedonia',
+  ml:'Mali',mm:'Myanmar',mn:'Mongolia',mo:'Macau',mq:'Martinique',mr:'Mauritania',
+  mt:'Malta',mu:'Mauritius',mv:'Maldives',mw:'Malawi',mx:'Mexico',my:'Malaysia',
+  mz:'Mozambique',
+  na:'Namibia',ne:'Niger',ng:'Nigeria',ni:'Nicaragua',nl:'Netherlands',no:'Norway',
+  np:'Nepal',nz:'New Zealand',
+  om:'Oman',
+  pa:'Panama',pe:'Peru',pf:'French Polynesia',pg:'Papua New Guinea',ph:'Philippines',
+  pk:'Pakistan',pl:'Poland',pr:'Puerto Rico',ps:'Palestine',pt:'Portugal',py:'Paraguay',
+  qa:'Qatar',
+  ro:'Romania',rs:'Serbia',ru:'Russia',rw:'Rwanda',
+  sa:'Saudi Arabia',sd:'Sudan',se:'Sweden',sg:'Singapore',si:'Slovenia',
+  sk:'Slovakia',sl:'Sierra Leone',sm:'San Marino',sn:'Senegal',so:'Somalia',
+  sr:'Suriname',st:'Sao Tome',sv:'El Salvador',sx:'Sint Maarten',sy:'Syria',
+  td:'Chad',tg:'Togo',th:'Thailand',tj:'Tajikistan',tl:'Timor-Leste',tm:'Turkmenistan',
+  tn:'Tunisia',tr:'Turkey',tt:'Trinidad',tw:'Taiwan',tz:'Tanzania',
+  ua:'Ukraine',ug:'Uganda',uk:'United Kingdom',us:'United States',uy:'Uruguay',uz:'Uzbekistan',
+  va:'Vatican',ve:'Venezuela',vg:'BVI',vi:'USVI',vn:'Vietnam',
+  ws:'Samoa',
+  xk:'Kosovo',
+  ye:'Yemen',yt:'Mayotte',
+  za:'South Africa',zm:'Zambia',zw:'Zimbabwe'
+};
+
+const video = document.getElementById('video');
+const placeholder = document.getElementById('placeholder');
+const nowPlaying = document.getElementById('nowPlaying');
+const countrySelect = document.getElementById('countrySelect');
+const searchInput = document.getElementById('search');
+const channelList = document.getElementById('channelList');
+const channelCount = document.getElementById('channelCount');
+
+let channels = [];
+let activeChannel = null;
+let hls = null;
+
+const countries = [
+  ...new Set([
+    ...Object.keys(COUNTRY_NAMES),
+    'ar','at','au','be','br','ca','ch','cl','co','cz','de','dk','es','fi','fr','gr','hk','hr','hu',
+    'id','ie','il','in','is','it','jp','kr','lt','lu','mx','my','nl','no','nz','pe','ph','pk','pl',
+    'pt','ro','rs','ru','se','sg','si','sk','th','tr','tw','ua','uk','us','vn','za'
+  ])
+].sort();
+
+function populateCountries() {
+  countrySelect.innerHTML = '<option value="">All Countries</option>' +
+    countries.map(c => {
+      const label = COUNTRY_NAMES[c] || c.toUpperCase();
+      return `<option value="${c}">${label}</option>`;
+    }).join('');
+}
+
+function guessCountryCode(name) {
+  const cc = name.split('_')[0];
+  if (countries.includes(cc)) return cc;
+  return name;
+}
+
+async function fetchPlaylist(code) {
+  const url = `${BASE}/${code}.m3u`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = await res.text();
+  return parseM3U(text);
+}
+
+function parseM3U(text) {
+  const lines = text.split('\n');
+  const items = [];
+  let current = null;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('#EXTINF:')) {
+      current = { name: '', tvgId: '', url: '' };
+      const idMatch = trimmed.match(/tvg-id="([^"]*)"/);
+      current.tvgId = idMatch ? idMatch[1] : '';
+      const commaIdx = trimmed.lastIndexOf(',');
+      if (commaIdx !== -1) current.name = trimmed.substring(commaIdx + 1).trim();
+    } else if (trimmed && !trimmed.startsWith('#') && current) {
+      current.url = trimmed;
+      if (current.name) items.push(current);
+      current = null;
+    }
+  }
+  return items;
+}
+
+async function loadAllPlaylists() {
+  channelList.innerHTML = '<div class="spinner"></div>';
+  channels = [];
+  const codes = countrySelect.value ? [countrySelect.value] : countries;
+  const results = await Promise.allSettled(
+    codes.map(code => fetchPlaylist(code).then(chs => chs.map(c => ({ ...c, country: code }))))
+  );
+  for (const r of results) {
+    if (r.status === 'fulfilled') channels.push(...r.value);
+  }
+  renderChannels();
+}
+
+function renderChannels() {
+  const query = searchInput.value.toLowerCase().trim();
+  const country = countrySelect.value;
+  const filtered = channels.filter(c => {
+    if (country && c.country !== country) return false;
+    if (query && !c.name.toLowerCase().includes(query)) return false;
+    return true;
+  });
+  channelCount.textContent = `${filtered.length} channel${filtered.length !== 1 ? 's' : ''}`;
+  if (filtered.length === 0) {
+    channelList.innerHTML = '<div class="no-channels">No channels found</div>';
+    return;
+  }
+  let html = '<div class="channel-grid">';
+  for (const ch of filtered) {
+    const isActive = activeChannel && ch.url === activeChannel.url;
+    html += `<div class="channel${isActive ? ' active' : ''}" data-url="${escapeAttr(ch.url)}" data-name="${escapeAttr(ch.name)}">
+      <div class="icon">${ch.name.charAt(0)}</div>
+      <div class="info">
+        <div class="name">${escHtml(ch.name)}</div>
+        <div class="meta">${(COUNTRY_NAMES[ch.country] || ch.country.toUpperCase())}${ch.tvgId ? ' &middot; ' + escHtml(ch.tvgId) : ''}</div>
+      </div>
+      <button class="play-btn">&#9654;</button>
+    </div>`;
+  }
+  html += '</div>';
+  channelList.innerHTML = html;
+  channelList.querySelectorAll('.channel').forEach(el => {
+    el.addEventListener('click', () => {
+      const url = el.dataset.url;
+      const name = el.dataset.name;
+      playChannel(url, name);
+    });
+  });
+}
+
+function escapeAttr(s) { return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function playChannel(url, name) {
+  if (hls) { hls.destroy(); hls = null; }
+  video.style.display = 'none';
+  placeholder.style.display = 'flex';
+  nowPlaying.innerHTML = `<strong>Now Playing:</strong> ${escHtml(name)}`;
+
+  if (url.endsWith('.m3u8')) {
+    if (Hls.isSupported()) {
+      hls = new Hls();
+      hls.loadSource(url);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.style.display = 'block';
+        placeholder.style.display = 'none';
+        video.play().catch(() => {});
+      });
+      hls.on(Hls.Events.ERROR, (e, data) => {
+        if (data.fatal) {
+          nowPlaying.innerHTML = `<strong>Error:</strong> Failed to play ${escHtml(name)}`;
+        }
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = url;
+      video.style.display = 'block';
+      placeholder.style.display = 'none';
+      video.play().catch(() => {});
+    } else {
+      nowPlaying.innerHTML = `<strong>Error:</strong> HLS not supported in this browser`;
+      return;
+    }
+  } else {
+    video.src = url;
+    video.style.display = 'block';
+    placeholder.style.display = 'none';
+    video.play().catch(() => {});
+  }
+  activeChannel = { url, name };
+  document.querySelectorAll('.channel').forEach(el => {
+    el.classList.toggle('active', el.dataset.url === url);
+  });
+}
+
+countrySelect.addEventListener('change', () => {
+  searchInput.value = '';
+  loadAllPlaylists();
+});
+
+searchInput.addEventListener('input', () => {
+  renderChannels();
+});
+
+populateCountries();
+loadAllPlaylists();
+</script>
+</body>
+</html>
