@@ -3,182 +3,172 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>abba TV - IPTV Player</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📺</text></svg>">
+<title>abba TV</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2'><rect x='2' y='7' width='20' height='15' rx='2'/><polyline points='16 21 16 7 9 1 2 7 2 21'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #08080e;
-    --surface: #12121e;
-    --surface2: #1a1a2e;
-    --surface3: #22223a;
-    --primary: #ff4d6d;
-    --primary-dim: rgba(255, 77, 109, 0.15);
-    --accent: #7c3aed;
-    --accent-dim: rgba(124, 58, 237, 0.15);
-    --text: #eeeef5;
-    --text2: #8888a0;
-    --text3: #5a5a70;
-    --radius: 12px;
-    --radius-sm: 8px;
-    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #181825;
+    --surface3: #20203a;
+    --border: rgba(255,255,255,0.06);
+    --border-hover: rgba(255,255,255,0.12);
+    --primary: #3b82f6;
+    --primary-dim: rgba(59,130,246,0.12);
+    --primary-glow: rgba(59,130,246,0.25);
+    --accent: #f97316;
+    --accent-dim: rgba(249,115,22,0.15);
+    --live: #22c55e;
+    --text: #f1f1f7;
+    --text2: #9494b0;
+    --text3: #5c5c78;
+    --radius: 10px;
+    --radius-sm: 6px;
   }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; -webkit-font-smoothing: antialiased; }
   .app { display: flex; flex-direction: column; height: 100vh; }
 
   header {
-    padding: 12px 24px; background: var(--surface); display: flex; align-items: center;
-    gap: 12px; flex-shrink: 0; border-bottom: 1px solid rgba(255,255,255,0.04);
-    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    padding: 0 20px; height: 48px; display: flex; align-items: center; gap: 10px;
+    flex-shrink: 0; border-bottom: 1px solid var(--border); background: var(--surface);
   }
-  .logo {
-    font-size: 22px; font-weight: 800; letter-spacing: -0.5px;
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .logo span { font-size: 20px; -webkit-text-fill-color: initial; }
-  header .sub { font-size: 11px; color: var(--text3); margin-left: auto; letter-spacing: 0.3px; }
+  .logo { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; letter-spacing: -0.3px; color: var(--text); }
+  .logo svg { color: var(--primary); }
+  .logo-sub { font-size: 11px; color: var(--text3); margin-left: auto; font-weight: 400; letter-spacing: 0.2px; }
 
   .player-wrap { position: relative; background: #000; flex-shrink: 0; }
   .player-wrap video { width: 100%; display: block; max-height: 45vh; background: #000; }
   .player-placeholder {
     width: 100%; max-height: 45vh; aspect-ratio: 16/9; display: flex;
-    align-items: center; justify-content: center; background:
-      radial-gradient(ellipse at center, #1a1a2e 0%, #08080e 100%);
-    color: var(--text2); font-size: 14px; flex-direction: column; gap: 12px;
+    align-items: center; justify-content: center; flex-direction: column; gap: 14px;
+    background: radial-gradient(ellipse at center, #14141f 0%, #0a0a0f 100%);
+    color: var(--text3); font-size: 13px;
   }
-  .player-placeholder .icon-wrap {
-    width: 64px; height: 64px; border-radius: 50%;
+  .player-placeholder .play-icon {
+    width: 56px; height: 56px; border-radius: 50%;
     background: var(--primary-dim); display: flex; align-items: center;
-    justify-content: center; margin-bottom: 4px;
+    justify-content: center; transition: background .2s;
   }
-  .player-placeholder svg { opacity: 0.6; color: var(--primary); }
+  .player-placeholder .play-icon svg { color: var(--primary); opacity: 0.7; }
 
   .now-playing {
-    padding: 10px 24px; background: var(--surface);
+    padding: 9px 20px; height: 40px; background: var(--surface);
     font-size: 13px; color: var(--text2); flex-shrink: 0;
     display: flex; align-items: center; gap: 8px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    min-height: 42px;
+    border-bottom: 1px solid var(--border);
   }
   .now-playing .np-dot {
-    width: 6px; height: 6px; border-radius: 50%; background: var(--primary);
+    width: 6px; height: 6px; border-radius: 50%; background: var(--text3);
     flex-shrink: 0; display: none;
   }
-  .now-playing.playing .np-dot { display: block; animation: pulse-dot 1.5s ease-in-out infinite; }
+  .now-playing.playing .np-dot { display: block; background: var(--live); animation: pulse-dot 1.5s ease-in-out infinite; }
   @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-  .now-playing .np-label { color: var(--text3); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .now-playing .np-label { color: var(--text3); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 500; }
   .now-playing .np-name { color: var(--text); font-weight: 500; }
-  .now-playing .np-flag { font-size: 14px; }
-  .now-playing .np-err { color: var(--primary); }
+  .now-playing .np-err { color: var(--accent); }
 
   .controls {
-    padding: 10px 24px; background: var(--surface2);
+    padding: 8px 20px; background: var(--surface2);
     display: flex; gap: 10px; align-items: center; flex-shrink: 0; flex-wrap: wrap;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid var(--border); min-height: 44px;
   }
   .tabs {
-    display: flex; gap: 4px; background: var(--surface);
-    padding: 3px; border-radius: 10px; flex-shrink: 0;
+    display: flex; gap: 2px; background: var(--surface);
+    padding: 2px; border-radius: var(--radius-sm); flex-shrink: 0;
   }
   .tab {
-    padding: 6px 16px; border-radius: 8px; border: none; background: transparent;
-    color: var(--text2); font-size: 13px; font-weight: 500; cursor: pointer;
-    transition: all .2s; white-space: nowrap;
+    padding: 5px 12px; border-radius: 5px; border: none; background: transparent;
+    color: var(--text3); font-size: 12.5px; font-weight: 500; cursor: pointer;
+    transition: all .15s; white-space: nowrap; display: flex; align-items: center; gap: 6px;
+    font-family: 'Inter', sans-serif;
   }
-  .tab:hover { color: var(--text); }
-  .tab.active { background: var(--primary); color: #fff; }
-  .tab.active.cat { background: var(--accent); }
-
+  .tab:hover { color: var(--text2); }
+  .tab.active { background: var(--surface3); color: var(--text); }
+  .tab svg { width: 15px; height: 15px; flex-shrink: 0; }
   .controls select {
-    padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.06);
-    background: var(--surface); color: var(--text); font-size: 13px; outline: none;
-    min-width: 150px; max-width: 220px; cursor: pointer;
-    transition: border-color .2s; flex-shrink: 0;
+    padding: 6px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: var(--surface); color: var(--text2); font-size: 12.5px; outline: none;
+    min-width: 140px; max-width: 200px; cursor: pointer; font-family: 'Inter', sans-serif;
+    transition: border-color .15s; flex-shrink: 0; -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235c5c78' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 8px center; padding-right: 28px;
   }
   .controls select:focus { border-color: var(--primary); }
   .controls select option { background: var(--surface); color: var(--text); }
   .controls input {
-    padding: 8px 12px 8px 34px; border-radius: var(--radius-sm);
-    border: 1px solid rgba(255,255,255,0.06); background: var(--surface);
-    color: var(--text); font-size: 13px; outline: none; flex: 1; min-width: 100px;
-    transition: border-color .2s;
+    padding: 6px 10px 6px 30px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text); font-size: 12.5px; outline: none; flex: 1; min-width: 100px;
+    transition: border-color .15s; font-family: 'Inter', sans-serif;
   }
   .controls input:focus { border-color: var(--primary); }
   .controls input::placeholder { color: var(--text3); }
   .search-wrap { position: relative; flex: 1; min-width: 100px; }
   .search-wrap .search-icon {
-    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
-    color: var(--text3); pointer-events: none; font-size: 14px;
+    position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+    color: var(--text3); pointer-events: none; display: flex;
   }
-  .controls .count { font-size: 12px; color: var(--text3); margin-left: auto; white-space: nowrap; }
+  .search-wrap .search-icon svg { width: 14px; height: 14px; }
+  .controls .count { font-size: 11.5px; color: var(--text3); margin-left: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
 
-  .channels { flex: 1; overflow-y: auto; padding: 16px 24px 24px; }
-  .channels::-webkit-scrollbar { width: 5px; }
+  .channels { flex: 1; overflow-y: auto; padding: 14px 20px 20px; }
+  .channels::-webkit-scrollbar { width: 4px; }
   .channels::-webkit-scrollbar-track { background: transparent; }
-  .channels::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
-  .channels::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+  .channels::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .channels::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
 
-  .channel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 6px; }
+  .channel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 5px; }
 
   .channel {
-    padding: 10px 14px; background: var(--surface);
+    padding: 9px 12px; background: var(--surface);
     border-radius: var(--radius-sm); cursor: pointer;
-    transition: all .18s ease;
-    border: 1px solid rgba(255,255,255,0.04);
-    display: flex; align-items: center; gap: 12px;
-    position: relative; overflow: hidden;
+    transition: all .15s ease;
+    border: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+    position: relative;
   }
-  .channel::before {
-    content: ''; position: absolute; inset: 0;
-    background: linear-gradient(135deg, var(--primary-dim), transparent 60%);
-    opacity: 0; transition: opacity .2s;
-  }
-  .channel:hover { border-color: rgba(255,77,109,0.2); transform: translateY(-1px); }
-  .channel:hover::before { opacity: 1; }
+  .channel:hover { border-color: var(--border-hover); background: var(--surface2); }
   .channel.active {
-    border-color: var(--primary); box-shadow: 0 0 20px rgba(255,77,109,0.08);
+    border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary-dim);
   }
-  .channel.active::before { opacity: 1; }
 
   .channel .ch-logo {
-    width: 38px; height: 38px; border-radius: var(--radius-sm);
+    width: 34px; height: 34px; border-radius: 5px;
     flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-    font-size: 15px; font-weight: 700; position: relative; overflow: hidden;
-    background: var(--surface3); z-index: 1;
+    font-size: 13px; font-weight: 600; position: relative; overflow: hidden;
+    background: var(--surface3);
   }
-  .channel .ch-logo img {
-    width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius-sm);
-  }
-  .channel .ch-logo .fallback {
-    font-size: 16px; font-weight: 700; color: var(--text2);
-  }
+  .channel .ch-logo img { width: 100%; height: 100%; object-fit: cover; border-radius: 5px; }
+  .channel .ch-logo .fallback { font-size: 14px; font-weight: 600; color: var(--text3); }
 
-  .channel .ch-info { flex: 1; min-width: 0; z-index: 1; }
-  .channel .ch-name { font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .channel .ch-meta { font-size: 11.5px; color: var(--text2); margin-top: 3px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-  .channel .ch-meta .flag { font-size: 13px; }
+  .channel .ch-info { flex: 1; min-width: 0; }
+  .channel .ch-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .channel .ch-meta { font-size: 11px; color: var(--text2); margin-top: 2px; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
   .channel .ch-badge {
-    font-size: 9.5px; padding: 1px 7px; border-radius: 4px;
-    background: var(--surface3); color: var(--text2); letter-spacing: 0.2px;
-    text-transform: uppercase; font-weight: 600;
+    font-size: 9.5px; padding: 1px 6px; border-radius: 3px;
+    background: var(--surface3); color: var(--text3); letter-spacing: 0.2px;
+    text-transform: uppercase; font-weight: 500;
   }
-  .channel .ch-badge.cat-badge { background: var(--accent-dim); color: #a78bfa; }
+  .channel .ch-badge.cat-badge { background: var(--primary-dim); color: var(--primary); }
 
   .channel .ch-play {
-    width: 30px; height: 30px; border-radius: 50%; border: none;
-    background: var(--primary); color: #fff; cursor: pointer; font-size: 12px;
+    width: 28px; height: 28px; border-radius: 50%; border: none;
+    background: var(--primary); color: #fff; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0; opacity: 0; transition: all .2s; z-index: 1;
   }
+  .channel .ch-play svg { width: 12px; height: 12px; }
   .channel:hover .ch-play { opacity: 1; }
-  .channel.active .ch-play { opacity: 1; background: var(--accent); }
-  .channel .ch-play:hover { transform: scale(1.1); }
+  .channel.active .ch-play { opacity: 1; }
+  .channel .ch-play:hover { transform: scale(1.08); }
 
   .spinner {
-    width: 28px; height: 28px; border: 3px solid var(--text3);
+    width: 24px; height: 24px; border: 2.5px solid var(--surface3);
     border-top-color: var(--primary); border-radius: 50%;
     animation: spin .7s linear infinite; margin: 50px auto;
   }
@@ -186,39 +176,41 @@
 
   .state-msg {
     text-align: center; padding: 60px 20px; color: var(--text2);
-    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
   }
-  .state-msg .state-icon { font-size: 32px; opacity: 0.4; }
-  .state-msg .state-title { font-size: 16px; font-weight: 600; color: var(--text); }
-  .state-msg .state-sub { font-size: 13px; color: var(--text3); max-width: 380px; line-height: 1.5; }
-
-  .error-msg { text-align: center; padding: 20px; color: var(--primary); font-size: 13px; }
+  .state-msg .state-icon { width: 40px; height: 40px; opacity: 0.25; color: var(--text3); }
+  .state-msg .state-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .state-msg .state-sub { font-size: 12.5px; color: var(--text3); max-width: 360px; line-height: 1.5; }
 
   @media (max-width: 640px) {
-    header { padding: 10px 16px; }
-    .logo { font-size: 18px; }
-    header .sub { font-size: 10px; }
-    .controls { padding: 8px 12px; gap: 8px; }
-    .controls select { min-width: 100px; max-width: 140px; }
-    .channels { padding: 10px 12px 16px; }
+    header { padding: 0 14px; }
+    .logo { font-size: 14px; }
+    .controls { padding: 6px 12px; gap: 6px; }
+    .controls select { min-width: 100px; max-width: 130px; font-size: 12px; }
+    .controls input { font-size: 12px; }
+    .channels { padding: 8px 12px 14px; }
     .channel-grid { grid-template-columns: 1fr; }
-    .tab { padding: 5px 12px; font-size: 12px; }
-    .now-playing { padding: 8px 12px; font-size: 12px; }
+    .tab { padding: 4px 10px; font-size: 12px; }
+    .tab svg { width: 13px; height: 13px; }
+    .now-playing { padding: 7px 14px; height: 36px; font-size: 12px; }
   }
 </style>
 </head>
 <body>
 <div class="app">
   <header>
-    <div class="logo"><span>📺</span> abba TV</div>
-    <span class="sub">powered by iptv-org</span>
+    <div class="logo">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="16 21 16 7 9 1 2 7 2 21"/></svg>
+      abba
+    </div>
+    <span class="logo-sub">IPTV</span>
   </header>
 
   <div class="player-wrap">
     <video id="video" controls autoplay playsinline style="display:none"></video>
     <div class="player-placeholder" id="placeholder">
-      <div class="icon-wrap">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      <div class="play-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
       </div>
       <span>Select a channel to start watching</span>
     </div>
@@ -227,26 +219,36 @@
   <div class="now-playing" id="nowPlaying">
     <span class="np-dot"></span>
     <span class="np-label">Not Playing</span>
-    <span class="np-flag" id="npFlag"></span>
     <span class="np-name" id="npName">Select a channel</span>
   </div>
 
   <div class="controls">
     <div class="tabs" id="tabs">
-      <button class="tab active" data-mode="country">🌍 Countries</button>
-      <button class="tab cat" data-mode="category">📂 Categories</button>
-      <button class="tab" data-mode="matches">⚽ Matches</button>
+      <button class="tab active" data-mode="country">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        Countries
+      </button>
+      <button class="tab cat" data-mode="category">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Categories
+      </button>
+      <button class="tab" data-mode="matches">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Matches
+      </button>
     </div>
     <select id="sourceSelect"><option value="">Loading...</option></select>
-    <select id="matchCategory" style="display:none;padding:8px 12px;border-radius:var(--radius-sm);border:1px solid rgba(255,255,255,0.06);background:var(--surface);color:var(--text);font-size:13px;outline:none;cursor:pointer;flex-shrink:0">
-      <option value="all">🏅 All Sports</option>
-      <option value="soccer">⚽ Soccer</option>
-      <option value="nfl">🏈 NFL</option>
-      <option value="nba">🏀 NBA</option>
-      <option value="nhl">🏒 NHL</option>
+    <select id="matchCategory" style="display:none">
+      <option value="all">All Sports</option>
+      <option value="soccer">Soccer</option>
+      <option value="nfl">NFL</option>
+      <option value="nba">NBA</option>
+      <option value="nhl">NHL</option>
     </select>
     <div class="search-wrap">
-      <span class="search-icon">🔍</span>
+      <span class="search-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </span>
       <input type="text" id="search" placeholder="Search channels..." />
     </div>
     <span class="count" id="channelCount">0</span>
@@ -254,7 +256,7 @@
 
   <div class="channels" id="channelList">
     <div class="state-msg">
-      <div class="state-icon">🌍</div>
+      <svg class="state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       <div class="state-title">Welcome to abba TV</div>
       <div class="state-sub">Select a country or category above to browse available channels</div>
     </div>
@@ -270,7 +272,6 @@ const video = document.getElementById('video');
 const placeholder = document.getElementById('placeholder');
 const nowPlaying = document.getElementById('nowPlaying');
 const npName = document.getElementById('npName');
-const npFlag = document.getElementById('npFlag');
 const sourceSelect = document.getElementById('sourceSelect');
 const matchCategory = document.getElementById('matchCategory');
 const searchInput = document.getElementById('search');
@@ -333,7 +334,7 @@ async function init() {
     populateSources();
   } catch (e) {
     sourceSelect.innerHTML = '<option value="">Failed to load data</option>';
-    showState('error', '⚠️', 'Failed to load', 'Could not fetch data. Please refresh to try again.');
+    showState('error', 'Failed to load', 'Could not fetch data. Please refresh to try again.');
   }
 }
 
@@ -372,20 +373,28 @@ tabs.addEventListener('click', e => {
 });
 
 function showWelcome() {
-  const icon = mode === 'country' ? '🌍' : '📂';
-  const label = mode === 'country' ? 'country' : 'category';
+  const icon = mode === 'country'
+    ? '<svg class="state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>'
+    : '<svg class="state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>';
   channelList.innerHTML = `
     <div class="state-msg">
-      <div class="state-icon">${icon}</div>
-      <div class="state-title">Browse by ${label}</div>
-      <div class="state-sub">Select a ${label} from the dropdown above to load channels</div>
+      ${icon}
+      <div class="state-title">Browse by ${mode === 'country' ? 'country' : 'category'}</div>
+      <div class="state-sub">Select a ${mode === 'country' ? 'country' : 'category'} from the dropdown above to load channels</div>
     </div>`;
 }
 
-function showState(type, icon, title, sub) {
+function showState(type, title, sub) {
+  const icons = {
+    error: '<svg class="state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+    empty: '<svg class="state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
+    matches: '<svg class="state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+    search: '<svg class="state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
+  };
+  const icon = icons[type] || icons.empty;
   channelList.innerHTML = `
     <div class="state-msg">
-      <div class="state-icon">${icon}</div>
+      ${icon}
       <div class="state-title">${title}</div>
       <div class="state-sub">${sub}</div>
     </div>`;
@@ -419,7 +428,7 @@ async function loadChannels(val) {
     channels = parseM3U(text, val);
     renderChannels();
   } catch (e) {
-    showState('error', '⚠️', 'Failed to load channels',
+    showState('error', 'Failed to load channels',
       `Could not fetch playlist for this ${mode}. It may not be available.`);
     channelCount.textContent = '0';
   }
@@ -473,15 +482,13 @@ function renderChannels() {
     ? channels.filter(c => c.name.toLowerCase().includes(query))
     : channels;
 
-  const totalCount = filtered.length;
-
-  channelCount.textContent = `${totalCount}`;
+  channelCount.textContent = `${filtered.length}`;
 
   if (filtered.length === 0) {
-    const icon = query ? '🔍' : '📭';
+    const type = query ? 'search' : 'empty';
     const title = query ? 'No results' : 'No channels';
     const sub = query ? `No channels match "${escHtml(query)}"` : 'This source has no channels available.';
-    showState('empty', icon, title, sub);
+    showState(type, title, sub);
     return;
   }
 
@@ -498,12 +505,14 @@ function renderChannels() {
       <div class="ch-info">
         <div class="ch-name">${escHtml(ch.name)}</div>
         <div class="ch-meta">
-          ${ci && ci.flag ? `<span class="flag">${ci.flag}</span>` : ''}
+          ${ci && ci.flag ? `<span>${ci.flag}</span>` : ''}
           ${ci ? escHtml(ci.name) : ''}
           ${ch.groupTitle ? `<span class="ch-badge cat-badge">${escHtml(ch.groupTitle)}</span>` : ''}
         </div>
       </div>
-      <button class="ch-play">▶</button>
+      <button class="ch-play">
+        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+      </button>
     </div>`;
   }
   html += '</div>';
@@ -538,10 +547,7 @@ function playChannel(url, name, tvgLogo) {
   video.style.display = 'none';
   placeholder.style.display = 'flex';
   nowPlaying.classList.remove('playing');
-  npFlag.textContent = '';
-
-  const ci = countries.find(c => channels.some(ch => ch.url === url && ch.country === c.code));
-  if (ci && ci.flag) npFlag.textContent = ci.flag;
+  npName.style.color = '';
 
   nowPlaying.querySelector('.np-label').textContent = 'Now Playing';
   npName.textContent = name;
@@ -561,7 +567,7 @@ function playChannel(url, name, tvgLogo) {
         if (data.fatal) {
           nowPlaying.querySelector('.np-label').textContent = 'Error';
           npName.textContent = `Failed to play ${name}`;
-          npName.style.color = 'var(--primary)';
+          npName.style.color = 'var(--accent)';
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -613,7 +619,7 @@ async function loadMatches(category) {
     }
     renderMatches();
   } catch (e) {
-    showState('error', '⚠️', 'Failed to load matches', 'Could not fetch from CDN Live TV. Try again later.');
+    showState('error', 'Failed to load matches', 'Could not fetch from CDN Live TV. Try again later.');
     channelCount.textContent = '0';
   }
 }
@@ -641,7 +647,9 @@ function renderMatches() {
   channelCount.textContent = `${filtered.length}`;
 
   if (filtered.length === 0) {
-    showState(query ? 'empty' : 'empty', query ? '🔍' : '⚽', query ? 'No results' : 'No matches today', query ? 'No matches match your search' : 'No matches with channels today or in the future. Try a different sport.');
+    showState(query ? 'search' : 'matches',
+      query ? 'No results' : 'No matches today',
+      query ? 'No matches match your search' : 'No matches with channels today or in the future. Try a different sport.');
     return;
   }
 
@@ -652,20 +660,21 @@ function renderMatches() {
     const matchName = firstCh ? attr(firstCh.channel_name + ' - ' + ev.homeTeam + ' vs ' + ev.awayTeam) : '';
 
     html += `<div class="channel" data-url="${matchUrl}" data-name="${matchName}" data-tvg-logo="" style="flex-direction:column;align-items:stretch">
-      <div style="display:flex;align-items:center;gap:12px">
+      <div style="display:flex;align-items:center;gap:10px">
         <div class="ch-logo">
-          <div class="fallback" style="font-size:11px">${ev.homeTeam ? ev.homeTeam.charAt(0) : '?'}</div>
+          <div class="fallback" style="font-size:10px">${ev.homeTeam ? escHtml(ev.homeTeam.charAt(0)) : '?'}</div>
         </div>
         <div class="ch-info">
           <div class="ch-name">${escHtml(ev.homeTeam || '')} vs ${escHtml(ev.awayTeam || '')}</div>
           <div class="ch-meta">
             ${ev.tournament ? `<span class="ch-badge cat-badge">${escHtml(ev.tournament)}</span>` : ''}
-            ${ev.status === 'LIVE' ? '<span class="ch-badge" style="background:#22c55e;color:#fff">● LIVE</span>' : '<span class="ch-badge" style="background:var(--accent-dim);color:#a78bfa">UPCOMING</span>'}
+            ${ev.status === 'LIVE'
+              ? '<span class="ch-badge" style="background:rgba(34,197,94,0.15);color:var(--live)">LIVE</span>'
+              : '<span class="ch-badge" style="background:var(--primary-dim);color:var(--primary)">UPCOMING</span>'}
             <span class="ch-badge">${escHtml(ev._sport)}</span>
-            ${ev.country ? `<span style="font-size:12px">${ev.countryIMG ? `<img src="${attr(ev.countryIMG)}" style="width:16px;height:12px;vertical-align:middle">` : ''} ${escHtml(ev.country)}</span>` : ''}
           </div>
-          <div style="font-size:12px;color:var(--text2);margin-top:2px">${ev.time || ''} ${ev.start ? `· ${ev.start}` : ''}</div>
-          ${firstCh ? `<div style="font-size:11px;color:var(--text3);margin-top:4px">📡 ${escHtml(firstCh.channel_name)}</div>` : ''}
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${ev.time || ''}${ev.start ? ` &middot; ${escHtml(ev.start)}` : ''}</div>
+          ${firstCh ? `<div style="font-size:11px;color:var(--text2);margin-top:3px">${escHtml(firstCh.channel_name)}</div>` : ''}
         </div>
       </div>
     </div>`;
