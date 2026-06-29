@@ -239,9 +239,17 @@
       <button class="tab cat" data-mode="category">📂 Categories</button>
       <button class="tab pin-tab" data-mode="pins">📌 Pins</button>
       <button class="tab" data-mode="custom">📦 Custom</button>
+      <button class="tab" data-mode="sports">⚽ Sports</button>
     </div>
     <select id="sourceSelect"><option value="">Loading...</option></select>
     <button id="addPinBtn" title="Add custom stream" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:4px 6px;border-radius:6px;transition:all .15s;flex-shrink:0" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text3)'">＋</button>
+    <select id="sportsSelect" style="display:none;padding:8px 12px;border-radius:var(--radius-sm);border:1px solid rgba(255,255,255,0.06);background:var(--surface);color:var(--text);font-size:13px;outline:none;cursor:pointer;flex-shrink:0">
+      <option value="all">🏅 All Sports</option>
+      <option value="soccer">⚽ Soccer</option>
+      <option value="nfl">🏈 NFL</option>
+      <option value="nba">🏀 NBA</option>
+      <option value="nhl">🏒 NHL</option>
+    </select>
     <div class="search-wrap">
       <span class="search-icon">🔍</span>
       <input type="text" id="search" placeholder="Search channels..." />
@@ -283,6 +291,7 @@
 <script>
 const DB = 'https://raw.githubusercontent.com/iptv-org/database/master/data';
 const PLAYLISTS = 'https://iptv-org.github.io/iptv';
+const CDN_LIVE_TV = 'https://api.cdnlivetv.tv/api/v1';
 
 const video = document.getElementById('video');
 const placeholder = document.getElementById('placeholder');
@@ -290,6 +299,7 @@ const nowPlaying = document.getElementById('nowPlaying');
 const npName = document.getElementById('npName');
 const npFlag = document.getElementById('npFlag');
 const sourceSelect = document.getElementById('sourceSelect');
+const sportsSelect = document.getElementById('sportsSelect');
 const searchInput = document.getElementById('search');
 const channelList = document.getElementById('channelList');
 const channelCount = document.getElementById('channelCount');
@@ -299,6 +309,7 @@ let mode = 'country';
 let countries = [];
 let categories = [];
 let channels = [];
+let sportsEvents = [];
 let activeChannel = null;
 let hls = null;
 
@@ -416,19 +427,23 @@ tabs.addEventListener('click', e => {
   btn.classList.add('active');
   mode = btn.dataset.mode;
   channels = [];
+  sportsEvents = [];
   activeChannel = null;
   searchInput.value = '';
   document.getElementById('customLoader').style.display = 'none';
+  sourceSelect.style.display = 'none';
+  sportsSelect.style.display = 'none';
+  document.getElementById('addPinBtn').style.display = 'none';
   if (mode === 'pins') {
-    sourceSelect.style.display = 'none';
     document.getElementById('addPinBtn').style.display = '';
     renderPins();
   } else if (mode === 'custom') {
-    sourceSelect.style.display = 'none';
-    document.getElementById('addPinBtn').style.display = 'none';
     document.getElementById('customLoader').style.display = 'flex';
     showState('custom', '📦', 'Load a Custom Playlist', 'Paste an M3U URL above or pick a preset to load channels.');
     channelCount.textContent = '0';
+  } else if (mode === 'sports') {
+    sportsSelect.style.display = '';
+    loadSportsEvents('all');
   } else {
     sourceSelect.style.display = '';
     document.getElementById('addPinBtn').style.display = '';
@@ -497,7 +512,10 @@ sourceSelect.addEventListener('change', async () => {
   await loadChannels(val);
 });
 
-searchInput.addEventListener('input', renderChannels);
+searchInput.addEventListener('input', () => {
+  if (mode === 'sports') renderSportsEvents();
+  else renderChannels();
+});
 
 async function loadChannels(val) {
   channelList.innerHTML = '<div class="spinner"></div>';
@@ -705,6 +723,101 @@ async function loadCustomM3U(url) {
   }
 }
 
+const SPORT_CATEGORIES = {
+  all: 'All Sports',
+  soccer: 'Soccer',
+  nfl: 'NFL',
+  nba: 'NBA',
+  nhl: 'NHL'
+};
+
+async function loadSportsEvents(category) {
+  channelList.innerHTML = '<div class="spinner"></div>';
+  sportsEvents = [];
+  activeChannel = null;
+
+  const url = category === 'all'
+    ? `${CDN_LIVE_TV}/events/sports/?user=cdnlivetv&plan=free`
+    : `${CDN_LIVE_TV}/events/sports/${category}/?user=cdnlivetv&plan=free`;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const key = Object.keys(data)[0];
+    const eventsData = data[key];
+    sportsEvents = [];
+    for (const sportName of ['Soccer', 'NFL', 'NBA', 'NHL']) {
+      if (Array.isArray(eventsData[sportName])) {
+        eventsData[sportName].forEach(e => {
+          e._sport = sportName;
+          sportsEvents.push(e);
+        });
+      }
+    }
+    renderSportsEvents();
+  } catch (e) {
+    showState('error', '⚠️', 'Failed to load sports events', 'Could not fetch from CDN Live TV. Try again later.');
+    channelCount.textContent = '0';
+  }
+}
+
+function renderSportsEvents() {
+  const query = searchInput.value.toLowerCase().trim();
+  let filtered = sportsEvents;
+  if (query) {
+    filtered = sportsEvents.filter(e =>
+      (e.homeTeam || '').toLowerCase().includes(query) ||
+      (e.awayTeam || '').toLowerCase().includes(query) ||
+      (e.tournament || '').toLowerCase().includes(query)
+    );
+  }
+  channelCount.textContent = `${filtered.length}`;
+
+  if (filtered.length === 0) {
+    showState(query ? 'empty' : 'empty', query ? '🔍' : '⚽', query ? 'No results' : 'No events', query ? 'No events match your search' : 'No sports events found for this category.');
+    return;
+  }
+
+  let html = '<div class="channel-grid">';
+  for (const ev of filtered) {
+    const isLive = ev.status === 'LIVE';
+    const isFinished = ev.status === 'finished' || ev.status === 'FT' || ev.status === 'PST';
+    const statusBadge = isLive
+      ? '<span class="ch-badge" style="background:#22c55e;color:#fff">● LIVE</span>'
+      : isFinished
+      ? `<span class="ch-badge" style="background:var(--text3)">${ev.status}</span>`
+      : `<span class="ch-badge" style="background:var(--accent-dim);color:#a78bfa">${ev.status || 'UPCOMING'}</span>`;
+
+    const channelInfo = ev.channels && ev.channels.length > 0
+      ? `<div style="font-size:11px;color:var(--text3);margin-top:4px">📡 ${ev.channels.map((ch, idx) =>
+          `<a href="#" class="sports-ch-link" data-url="${attr(ch.url)}" data-name="${attr(ch.channel_name)}" data-event="${attr(ev.homeTeam + ' vs ' + ev.awayTeam)}" style="color:var(--primary);text-decoration:none;margin-right:4px" onclick="event.stopPropagation();playChannel('${attr(ch.url)}','${attr(ch.channel_name + ' - ' + ev.homeTeam + ' vs ' + ev.awayTeam)}','')">${escHtml(ch.channel_name)}</a>`
+        ).join(', ')}</div>`
+      : '';
+
+    html += `<div class="channel" style="cursor:default;flex-direction:column;align-items:stretch">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="ch-logo">
+          <div class="fallback" style="font-size:11px">${ev.homeTeam ? ev.homeTeam.charAt(0) : '?'}</div>
+        </div>
+        <div class="ch-info">
+          <div class="ch-name">${escHtml(ev.homeTeam || '')} vs ${escHtml(ev.awayTeam || '')}</div>
+          <div class="ch-meta">
+            ${ev.tournament ? `<span class="ch-badge cat-badge">${escHtml(ev.tournament)}</span>` : ''}
+            ${statusBadge}
+            <span class="ch-badge">${escHtml(ev._sport)}</span>
+            ${ev.country ? `<span style="font-size:12px">${ev.countryIMG ? `<img src="${attr(ev.countryIMG)}" style="width:16px;height:12px;vertical-align:middle">` : ''} ${escHtml(ev.country)}</span>` : ''}
+          </div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px">${ev.time || ''} ${ev.start ? `· ${ev.start}` : ''}</div>
+          ${channelInfo}
+        </div>
+      </div>
+    </div>`;
+  }
+  html += '</div>';
+  channelList.innerHTML = html;
+}
+
 document.getElementById('loadCustomBtn').addEventListener('click', () => {
   const url = document.getElementById('customUrlInput').value.trim();
   if (!url) return;
@@ -724,6 +837,10 @@ document.getElementById('customPreset').addEventListener('change', e => {
   document.getElementById('customUrlInput').value = url;
   loadCustomM3U(url);
   e.target.value = '';
+});
+
+sportsSelect.addEventListener('change', () => {
+  loadSportsEvents(sportsSelect.value);
 });
 
 document.getElementById('addPinBtn').addEventListener('click', openPinModal);
